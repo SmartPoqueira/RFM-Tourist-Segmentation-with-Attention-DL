@@ -3,31 +3,25 @@ import numpy as np
 
 def calculate_rfm_scores(df_rfm):
     """
-    Calculates R, F, M scores and assigns RFM labels based on the notebook logic.
+    Compute R, F, M scores and concatenate them into a 3-digit RFM_SCORE string.
+
+    Scoring rules:
+      R (Recency):   quintile cut, labels [5,4,3,2,1] — lower recency (more recent) → score 5.
+      F (Frequency): fixed bins (−∞,1,2,3,4,∞], labels [1,2,3,4,5] — higher frequency → score 5.
+      M (Monetary):  quintile cut, labels [1,2,3,4,5] — higher spend → score 5.
     """
-    # Calculate R score (Quintiles, descending for Recency? Notebook uses qcut directly)
-    # Notebook: df_RFM["R"] = pd.qcut(df_RFM['recency'], 5, labels=[5, 4, 3, 2, 1])
-    # Recency: Lower is better (more recent). qcut with labels [5,4,3,2,1] assigns 5 to lowest values?
-    # No, qcut assigns to bins. If data is [10, 20, 30], bins are small->large.
-    # If labels are [5,4,3,2,1], then smallest values (most recent) get 5. Correct.
     df_rfm["R"] = pd.qcut(df_rfm['recency'], 5, labels=[5, 4, 3, 2, 1])
-    
-    # Frequency: Notebook used custom bins/cut, not qcut for F? 
-    # Notebook line 1050: pd.cut(..., bins=[-inf, 1, 2, 3, 4, inf], labels=[1, 2, 3, 4, 5])
-    df_rfm["F"] = pd.cut(df_rfm['frequency'], 
-                         bins=[-float('inf'), 1, 2, 3, 4, float('inf')], 
+
+    df_rfm["F"] = pd.cut(df_rfm['frequency'],
+                         bins=[-float('inf'), 1, 2, 3, 4, float('inf')],
                          labels=[1, 2, 3, 4, 5])
-    
-    # Monetary: Notebook used qcut
-    # df_RFM["M"] = pd.qcut(df_RFM['monetary'], 5, labels=[1, 2, 3, 4, 5])
-    # Higher monetary -> Higher score (5)
+
     df_rfm["M"] = pd.qcut(df_rfm['monetary'], 5, labels=[1, 2, 3, 4, 5])
-    
-    # Create concatenated Score string
-    df_rfm["RFM_SCORE"] = (df_rfm['R'].astype(str) + 
-                           df_rfm['F'].astype(str) + 
+
+    df_rfm["RFM_SCORE"] = (df_rfm['R'].astype(str) +
+                           df_rfm['F'].astype(str) +
                            df_rfm['M'].astype(str))
-    
+
     return df_rfm
 
 SEG_MAP = {
