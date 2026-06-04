@@ -110,6 +110,8 @@ bash scripts/run_experiment.sh
 
 ## Citation
 
+If you use this code in your research, please cite:
+
 ```bibtex
 @article{duran2026tourism,
   title={Tourism Segmentation Using Attention and Anomaly Detection},
