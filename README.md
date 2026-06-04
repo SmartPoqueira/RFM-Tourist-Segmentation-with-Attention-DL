@@ -110,4 +110,4 @@ bash scripts/run_experiment.sh
 
 ## License
 
-MIT License — see [LICENSE](LICENSE).
+Creative Commons Attribution 4.0 International License (CC BY 4.0) — see [LICENSE](LICENSE).

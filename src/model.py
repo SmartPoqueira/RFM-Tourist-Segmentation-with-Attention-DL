@@ -89,7 +89,7 @@ def multi_acc(y_pred, y_test):
     
     return acc
 
-def train_model(X, y, num_classes, epochs=10, batch_size=1048, learning_rate=6e-5, device="cpu"):
+def train_model(X, y, num_classes, epochs=10, batch_size=1048, learning_rate=5e-5, device="cpu"):
     # Split data
     X_trainval, X_test, y_trainval, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=1234)
     X_train, X_val, y_train, y_val = train_test_split(X_trainval, y_trainval, test_size=0.1, stratify=y_trainval, random_state=1234)
@@ -124,7 +124,7 @@ def train_model(X, y, num_classes, epochs=10, batch_size=1048, learning_rate=6e-
     model.to(device)
 
     criterion = nn.CrossEntropyLoss(weight=class_weights.to(device))
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
 
     accuracy_stats = {'train': [], 'val': []}
     loss_stats = {'train': [], 'val': []}

@@ -33,7 +33,7 @@ warnings.filterwarnings('ignore')
 FAST_MODE = True  # Set to False for rigorous paper results (Takes hours)
 EPOCHS = 5 if FAST_MODE else 70
 BATCH_SIZE = 1048
-LEARNING_RATE = 6e-5
+LEARNING_RATE = 5e-5
 N_SPLITS = 10 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -125,7 +125,7 @@ def train_and_evaluate_fold(X_train, y_train, X_test, y_test, num_classes):
     model = MulticlassClassificationWithAttentionHead(num_feature=X_train.shape[1], num_class=num_classes)
     model.to(DEVICE)
     criterion = nn.CrossEntropyLoss(weight=loss_weights.to(DEVICE))
-    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE)
     
     # Training
     model.train()

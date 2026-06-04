@@ -20,9 +20,9 @@ outlier_methods:
   - ldis
 
 model:
-  epochs: 10
+  epochs: 70
   batch_size: 1048
-  learning_rate: 6.0e-5
+  learning_rate: 5.0e-5
   num_attention_heads_before: 2
   num_attention_heads_after: 2
   hidden_dims: [1024, 512, 256, 128, 64]
