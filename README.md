@@ -47,13 +47,24 @@ Key features:
 
 ## Results
 
-Classification performance on RFM tourist segments (weighted F1):
+Comparison of Macro-averaged F1-scores and processing times across different outlier removal methodologies (evaluated at 0%, 2%, 5%, and 10% removal thresholds):
 
-| Metric | Value |
-|---|---|
-| Accuracy | 84.2% |
-| Weighted F1 | 0.81 |
-| Macro F1 | 0.79 |
+| Outliers Removed (%) | Method | Macro-Averaged F1-Score | Processing Time (sec) |
+| :---: | :--- | :---: | :---: |
+| 0% | None (Baseline) | 0.92 | 477.41 |
+| 2% | Isolation Forest | 0.94 | 475.92 |
+| 2% | Z-score | 0.93 | 472.13 |
+| 2% | LDIS | 0.92 | 721.80 |
+| 2% | k-medoids | 0.92 | 542.13 |
+| 5% | Isolation Forest | 0.88 | 551.32 |
+| **5%** | **Z-score (Selected)** | **0.95** | **459.32** |
+| 5% | LDIS | 0.91 | 707.18 |
+| 5% | k-medoids | 0.92 | 535.48 |
+| 10% | Isolation Forest | **0.95** | 437.11 |
+| 10% | Z-score | 0.91 | 432.92 |
+| 10% | IQR | 0.92 | 478.20 |
+| 10% | LDIS | 0.94 | 687.13 |
+| 10% | k-medoids | 0.91 | 528.98 |
 
 <p align="center">
   <img src="images/multihead.png" width="600"/>
