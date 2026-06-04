@@ -39,11 +39,11 @@ Key features:
 | Method | Approach | Effect on F1 |
 |---|---|---|
 | None (Baseline) | — | 0.72 |
-| Z-Score | Remove \|z\| > 3 | 0.76 |
+| Z-Score | Remove \|z\| > 2.5 | 0.76 |
 | IQR | Remove outside [Q1-1.5·IQR, Q3+1.5·IQR] | 0.78 |
 | Isolation Forest | Contamination-based anomaly detection | 0.74 |
 | K-Medoids | Distance-based cluster cleaning | 0.75 |
-| **LDIS** | Local density inverse scoring | **0.81** |
+| **LDIS** | Local Density-based Instance Selection | **0.81** |
 
 ## Results
 
