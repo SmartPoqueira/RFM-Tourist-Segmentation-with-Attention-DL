@@ -1,0 +1,35 @@
+seed: 1234
+
+data:
+  visits_file: "data/BD_visitas_DEFINITIVO_POQ.csv"
+  monetary_file: "data/Monetary_INE.csv"
+  reference_date: "2023-08-01"
+  occupancy_factor: 0.52
+
+clustering:
+  n_clusters: 5
+  method: kmeans
+  random_state: 42
+
+outlier_methods:
+  - none
+  - zscore
+  - iqr
+  - isolation_forest
+  - kmedoids
+  - ldis
+
+model:
+  epochs: 10
+  batch_size: 1048
+  learning_rate: 6.0e-5
+  num_attention_heads_before: 2
+  num_attention_heads_after: 2
+  hidden_dims: [1024, 512, 256, 128, 64]
+
+evaluation:
+  test_size: 0.2
+  val_size: 0.1
+  stratified: true
+
+output_dir: "results"

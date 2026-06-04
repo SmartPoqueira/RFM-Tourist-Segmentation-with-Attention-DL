@@ -1,0 +1,636 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Trim Size: 9.75in x 6.5in
+%% Text Area: 8in (include Runningheads) x 5in
+%% ws-ijitdm.tex  :  8-7-2009 
+%% Class file to use with ws-ijitdm.cls written in Latex2E. 
+%% The content, structure, format and layout of this style file is the 
+%% property of World Scientific Publishing Co. Pte. Ltd. 
+%% Copyright 1995, 2002 by World Scientific Publishing Co. 
+%% All rights are reserved.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass{ws-ijitdm}
+
+\usepackage{xcolor}
+
+\begin{document}
+
+\markboth{Authors' names.}
+{Tourism Segmentation Using Attention and Anomaly Detection}
+
+\catchline{0}{0}{0000}{}{}
+
+\title{Tourism Segmentation Using Attention and Anomaly Detection}
+
+\author{ALBERTO DURÁN-LÓPEZ}
+
+\address{Research Center for Information and Communication \\ Technologies (CITIC-UGR), University of Granada, Granada, Spain. \\ albduranlopez@ugr.es}
+
+\author{DANIEL BOLAÑOS-MARTINEZ\footnote{
+\uc{c}orresponding author.}}
+
+\address{Research Center for Information and Communication \\ Technologies (CITIC-UGR), University of Granada, Granada, Spain. \\ danibolanos@ugr.es}
+
+\author{MARIA BERMUDEZ-EDO}
+
+\address{Research Center for Information and Communication \\ Technologies (CITIC-UGR), University of Granada, Granada, Spain. \\ Andalusian Institute of Research and Innovation in Tourism (IATUR), 18011, Granada, Spain. \\ mbe@ugr.es}
+
+\maketitle
+
+%\begin{history}
+%\received{Day Month Year}
+%\revised{Day Month Year}
+%\end{history}
+
+\begin{abstract}
+The RFM (Recency, Frequency, Monetary) model is used for customer segmentation based on purchasing habits. {\color{black}This study aims to segment tourists with an attention‑based neural classifier and to quantify how outlier removal affects performance.} Using preprocessed License Plate Recognition data, we derived RFM features to identify distinct patterns. A neural network with multi-attention mechanisms was trained on this data. We evaluated three outlier detection techniques—Interquartile Range, Z-score, and Isolation Forest—alongside two representative point selection algorithms: Local Density Instance Selection and k-medoids. Our results highlight Z-score as the most efficient outlier removal method, achieving a Macro-average F1-score 0.05 higher and a 23.2\% faster processing time compared to the other methods. Additionally, Isolation Forest excelled in identifying strategic visitors. {\color{black}These results could guide policymakers in personalized campaigns to promote loyalty. Future work will integrate fuzzy logic and explainable AI, incorporate individual‑level data, and validate across diverse destinations.}
+
+\keywords{Anomaly detection; Tourism segmentation; MultiHead-Attention; Deep Learning.}
+\end{abstract}
+
+\newpage
+
+\section{Introduction} \label{sec:intro}
+
+The RFM (Recency, Frequency, Monetary) model is used to segment customers based on information from these three basic variables related to buying behavior\cite{1}. In recent years, RFM analysis has been integrated with machine learning using unsupervised learning techniques for the creation of clusters\cite{3,4,5}. Furthermore, {\color{black}this approach has also been combined with deep learning models\cite{6,7,8} to improve behavior prediction. Despite significant advances in attention-based modeling\cite{TFUZZ2024,Frontiers2023,Bentham2019}, transformer architectures remain largely underexplored in this domain.} In the tourism sector, RFM analysis has been performed on hotel users\cite{9,10}, using customer review data to better understand their preferences. However, most of the RFM analysis are based on private data from companies and hotels\cite{11,12}. Outside these companies, this data is private and inaccessible, typically because it is sensitive. This is why there are trends exploring the use of other data sources for the construction of RFM variables, such as social media reviews, web analytics, payment terminals or IoT sensors\cite{7,8,13,14}.
+
+The literature also highlights the importance of anomaly detection in predictive models, as outliers can distort the results and reduce the accuracy of the models\cite{15,16}. Some papers have highlighted how outliers penalize some machine learning (ML) methods, such as transformers\cite{17,18}. Outlier detection in RFM analysis is important because {\color{black}the large number of classes and data points makes cluster boundaries unclear, complicating separation and classification.} Some RFM analysis studies use outlier removal as part of preprocessing. For example, traditional methods such as Z-score\cite{19} or Interquartile Range (IQR)\cite{20} are used. Other studies use the same segmentation algorithm such as DBSCAN to remove outliers implicitly during segmentation\cite{21,22}. However, none of them have conducted an analysis on how different outlier methods impact model performance. 
+
+This paper proposes a methodology for constructing a classification model to segment visitors in a tourist area using RFM analysis. In particular, we developed a transformer in the form of a multi-classification neural network (NN) model trained on recency, frequency and monetary variables. The study focuses on a tourist rural area equipped with License Plate Recognition (LPR) devices, collecting information related to vehicle mobility in the area. Tourist's vehicles are treated as customers, with LPR cameras extracting recency and frequency data behavior, while from the vehicle's provenance, we extract the monetary indicator. Additionally, we investigate the impact of different anomaly detection methods on the NN performance. We apply five different techniques to measure their effectiveness in enhancing model precision, recall, and F1-score. Of these five methods, three are popularly utilized in the literature (IQR, Z-score, Isolation Forest) for outlier removal. The other two are algorithms typically used for selecting representative points (LDIS, k-medoids), but can also be used to eliminate outliers by identifying and removing data points that do not represent the overall data distribution accurately.
+
+%Destacar la contribución
+Hence, the contribution of this article is twofold. First, we use a transformer model to classify tourists into RFM segments, creating a training dataset for the first time using LPR technology monitoring. Second, we emphasize the importance of comparing different anomaly detection methods to identify the most effective one. This demonstrates how various techniques affect the optimality of results in RFM-related tourism problems, where cluster boundaries are unclear.
+
+%Organización del paper
+The remainder of the paper is organized as follows. Section \ref{sec:literature} describes the related work. Section \ref{sec:outliers_method} presents the theoretical bases discussed throughout the paper, describing the five outlier removal methods and multihead-attention mechanism. Section \ref{sec:method} presents the problem statement. Section \ref{sec:experiment} explains the experiments realized and discusses the results. Finally, Section \ref{sec:conclusion} concludes the paper.
+
+\section{Related work} \label{sec:literature}
+
+%Comentario de la utilización típica de artículos de RFM que es usando clustering, principalmente algoritmos sencillos como k-mean
+
+RFM divides customers based on their quintiles of recency, frequency, and monetary value\cite{1}. Recently, clustering techniques, such as k-means, have been employed to group customers transactions into different segments based on their RFM characteristics\cite{3}.  For example, Gustriansyah et al.\cite{23} propose k-means optimization using the elbow method on different evaluation metrics to segment market products into clusters. Imani et al.\cite{24} use regrouping phases to identify and categorize potential loyal customers. This involves periodically reassessing customer segments with data mining techniques to ensure accurate, up-to-date categorization. Other works apply other algorithms such as k-medoids or DBSCAN to identify potential customer segments\cite{5,25}. Sun et al.\cite{26} proposes a new clustering method, Gaussian Peak Heuristic Clustering (GPHC), which combines genetic algorithms and hierarchical clustering to recognize customer preference patterns. These studies highlight the effectiveness of RFM analysis combined with clustering techniques in customer segmentation.
+
+%Aparece la idea de artículos que no solo se centran en usar clustering para RFM, si no que usan algoritmos de deep learning o fuzzy logic para este ámbito
+{\color{black}Recent research on RFM analysis has moved beyond traditional clustering, integrating deep learning architectures and hybrid segmentation–prediction frameworks. For instance, Zaghloul et al.\cite{zaghloul2025rfm} combine RFM features with k-means and recurrent neural networks (LSTM/GRU) to predict customer churn (i.e., the likelihood that a customer will stop purchasing or cancel a service) and guide retention strategies, outperforming classical approaches. In the e-commerce domain, Kim et al.\cite{kim2025rfmvda} extend the RFM model into RFMVDA (Recency, Frequency, Monetary, Visits, Durations, Actions) and train a deep NN for behavioral classification. Other studies have explored deep models applied directly to transaction data labeled with RFM metrics, such as comparing LSTM and Temporal Convolutional Networks (TCN) for churn estimation\cite{dharmasaguna2025churn}. Fuzzy clustering approaches have been used to address segmentation boundary ambiguity, incorporating Fuzzy C-Means and explainable AI layers\cite{marin2025fuzzyxai}, as well as dynamic RFM-based models that capture temporal changes in retail segmentation\cite{sobantu2024fuzzy}. Additionally, while transformer architectures remain uncommon in direct RFM segmentation tasks, they have demonstrated strong performance in predicting contractual churn within B2B contexts\cite{ahlstrand2025transformers}.}
+
+%Introducimos la idea de que no siempre RFM se aplica sobre directamente datos de clientes, si no que en el ámbito turístico también se han explorado el obtener datos de transacciones de tarjeta, terminales de pago, páginas webs... Pero no se ha explorado este método usando LPR
+Although RFM analysis has mainly focused on analyzing customer card transaction data, some studies have explored alternative data sources to understand tourism behavior. For example, Liao et al.\cite{7} take into account multiple user behaviors in their shopping process in e-commerces, such as number of clicks, products pending purchase, and favorites. Dadfarnia et al.\cite{8} use segmentation by payment terminal (not by customer), based on the type of transactions received. In the tourism sector, some works analyze hotel data\cite{9,10}. Some studies have explored alternative data sources to understand tourism behavior. For example, Bueno et al.\cite{13,30} consider the customer reviews on TripAdvisor as a source of information. {\color{black}Li et al. \cite{li2024transformer} use historical tourist arrival and search query data from destinations such as Hawaii and Jiuzhaigou to improve tourism demand forecasting with transformers. Some studies have utilized LPR sensors to collect vehicle data and train transformer-based models aimed at predicting tourist patterns in Spanish rural areas\cite{rural1,tourism2}. However, there are currently no studies combining transformers, RFM, and tourism in the literature.}
+
+%Importancia de outlier removal y su impacto de deep learning, estudio de esto en RFM (no hay)
+
+Outlier removal is important in machine learning because outliers can significantly distort the results and accuracy of the models. Wang et al.\cite{15} use a NN prediction model within a framework that includes outlier detection to enhance prediction accuracy and stability. Similarly, Saha et al.\cite{16} emphasize that integrating anomaly detection and mitigation in NN models greatly improves prediction accuracy for both short and long-term forecasts. Bondarenko et al.\cite{17} examine the impact of outliers on transformer activation heads, which negatively affects the computation time and memory usage. Dash et al.\cite{31} recommend the use of IQR to detect and manage outliers in data mining classification tasks, demonstrating its effectiveness across various datasets. Outlier removal is an additional preprocessing step. Most studies select a specific method for this task without comparing how each method affects the final model. For instance, Christy et al.\cite{19} use the Z-score method to detect and remove outliers, whereas Dawane et al.\cite{20} prefer the IQR approach. Other studies\cite{21,22} do not focus on outlier analysis, relying instead on the DBSCAN algorithm, which implicitly removes outliers during the segmentation process, simplifying preprocessing by combining outlier detection and removal into a single step.
+
+\section{Theoretical background} \label{sec:outliers_method}
+
+\subsection{Anomaly Detection Methods} 
+
+%In our study, we have adopted a multifaceted approach for outlier detection and removal, combining density-based methods (LDIS), clustering (k-medoids), isolation (Isolation Forest), and classical statistical techniques (Z-score and IQR). This strategic choice considers the heterogeneous nature of the data and the need to handle outliers from diverse perspectives.
+
+A variety of techniques exist to identify and handle outliers. Some techniques are specifically designed for outlier detection, such as Isolation Forest, and classical statistical methods like Z-score and IQR. Other techniques, while not specifically designed for anomaly detection, can still be used to remove outliers, such as density-based methods like LDIS and clustering algorithms like k-medoids.
+
+\begin{itemlist}
+    \item \textbf{LDIS}: The Local Density-based Instance Selection algorithm\cite{32}, is an algorithm designed to reduce the number of instances in a dataset while preserving the main information. It achieves this by identifying and retaining instances with high local density within their respective classes.
+    %original density condensation method\cite{hart1968condensed}.
+
+    For a given instance $x$ within a class $c$, the algorithm calculates the local density $Dens(x, c)$, which is defined as:
+    \[
+    Dens(x, P) = -\frac{1}{|P|} \sum_{y \in P} d(x, y),
+    \]
+    where $P$ is the set of $k$-nearest neighbors of $x$ within the same class $c$, and $d(x, y)$ is the distance between instances $x$ and $y$. An instance $x$ is retained if its density is at least as high as that of its densest neighbor within the $k$-neighborhood:
+    \[
+    \text{Retain } x \text{ if } Dens(x, c) \geq \max_{y \in P} Dens(y, c).
+    \]
+
+    \item \textbf{K-medoids}: It is a clustering algorithm and not inherently designed for outlier removal\cite{33}. However, its robust nature against noise and outliers makes it a useful tool for this purpose. By using k-medoids, we can identify and remove outliers based on their distance from cluster medoids, ensuring that the most representative instances are retained\cite{34}. First, the algorithm clusters the data, selecting $k$ representative points (medoids) that minimize the sum of dissimilarities within each cluster. The dissimilarity between an instance $x_i$ and a medoid $m_j$ is given by $d(x_i, m_j)$. The goal is to minimize the total dissimilarity, which is defined as:
+    \[
+    \sum_{j=1}^{k} \sum_{x_i \in C_j} d(x_i, m_j),
+    \]
+    where $C_j$ is the set of instances in cluster $j$ and $d(x_i, m_j)$ is the distance between instance $x_i$ and medoid $m_j$. These medoids are the central points of their respective clusters and are considered the most representative instances. After clustering, instances that are far from their nearest medoid and are not medoids themselves are considered outliers and are removed.
+
+    \item \textbf{Isolation Forest}: This algorithm isolates anomalies by constructing an ensemble of isolation trees. Each tree is built by recursively partitioning the data using randomly selected features and split values\cite{35}. Anomalies, due to their inherent rarity and differing characteristics, tend to be isolated closer to the root of the tree compared to normal instances, resulting in shorter average path lengths from the root to the terminating node. 
+    
+    The path length $h(x)$ for an instance $x$ is used to calculate the anomaly score:
+    \[
+    s(x, n) = 2^{-\frac{E(h(x))}{c(n)}},
+    \]
+    
+    where $E(h(x))$ represents the expected path length of $x$ in the Isolation Forest, approximated by $\ln(n-1) + \gamma$ for a single tree, with $\gamma$ being the Euler constant. The term $c(n)$ is the average path length of unsuccessful searches in a binary search tree, given by $c(n) = 2 \ln(n) - 2(n-1)/n$. Instances with scores close to 1 are likely anomalies, as they indicate shorter average path lengths across multiple isolation trees, suggesting that these instances are isolated and differ from the majority of the data.
+    
+    \item \textbf{Z-Score}: This method identifies outliers by measuring how many standard deviations an observation is away from the mean of the data\cite{36}. The Z-Score of an observation $x_i$ in a dataset with mean $\mu$ and standard deviation $\sigma$ is calculated as:
+    \[
+    Z_i = \frac{x_i - \mu}{\sigma},
+    \]
+    where:  $x_i$ is the value of the observation, $\mu$ is the mean of the dataset, and $\sigma$ is the standard deviation of the dataset. %$Z_i$ is the Z-Score of observation $x_i$, 
+    An observation is marked as an outlier if $|Z_i|$ exceeds the value 2.5\cite{36}, but this value can be adapted to increase or decrease the percentage of outliers.
+    
+    \item \textbf{Interquartile Range}: The IQR method identifies outliers by measuring the spread of the middle 50\% of the data\cite{36}. The IQR is the difference between the third quartile and the first quartile:
+    \[
+        \text{IQR} = Q3 - Q1.
+    \]
+    An observation is considered an outlier if it falls below $Q1 - \alpha \times \text{IQR}$ or above $Q3 + \alpha \times \text{IQR}$, where $\alpha$ is a constant that usually takes the value 1.5. This value is chosen as a balance: a smaller multiplier, like 1, would be too sensitive, detecting too many points as outliers, while a larger one, like 2, would be too permissive, missing many outliers\cite{37}. %These thresholds are known as the lower and upper bounds for detecting outliers.
+\end{itemlist}
+
+\subsection{MultiHead-Attention}
+%He explicado Multihead Att. sin nombrar self-att. ya que aquí no se usa. Sin embargo, he tenido que nombrar el mecanismo de att. original que se usa (fórmula (1)), y a partir de ahí describir el MultiHead.
+
+The multihead-attention mechanism is a technique used in NNs to improve the efficiency and capability of NN models. It is based on the attention mechanism, which allows NNs to focus on important parts of the input data, serving as the queries, keys, and values. The input $X$ is linearly transformed to obtain the matrices of queries ($Q$), keys ($K$), and values ($V$), respectively:
+\[
+    Q = XW_Q, \quad K = XW_K, \quad V = XW_V,
+\]
+where $W_Q$, $W_K$, and $W_V$ are weight matrices that facilitate the transformation of the input data $X$ into different representations for the purpose of computing attention scores. In the multihead-attention mechanism, multiple ``heads'' of attention operate in parallel, each processing a different part of the information\cite{38}.
+
+Initially, the query ($Q$), key ($K$), and value ($V$) vectors are projected into $h$ separate sets, named $Q_i$, $K_i$, and $V_i$ for each $i = 1, \ldots, h$. Then, the scaled dot-product attention is applied to each projection set. This equation is computed as follows:
+
+\[
+\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right) V,
+\label{eq:scaled_dot_product}
+\]
+
+where $d_k$ is the dimension of the keys. After this, the results from each head are concatenated and then linearly projected to form the final output:
+
+\[
+\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h)W^O,
+\label{eq:multihead}
+\]
+
+where each $\text{head}_i$ is calculated as follows:
+
+\[
+\text{head}_i = \text{Attention}(QW_i^Q, KW_i^K, VW_i^V).
+\]
+
+Here, $W_i^Q$, $W_i^K$, and $W_i^V$ are the projection matrices to transform $Q$, $K$, and $V$ into the $i$-th head, respectively, and $W^O$ is the matrix used for the final linear projection.
+
+\section{Problem statement} \label{sec:method}
+
+In this study, we follow a systematic approach consisting of five steps represented in Figure \ref{fig:schema}. First, during the data preparation phase, we examine and transform the raw data from different sources to obtain the variables necessary for the RFM analysis. Next, in the RFM Labeling step, we segment these variables into five categories (quintiles) to better understand customer behavior. Then, we assign RFM labels to each data point. Afterward, we apply various outlier detection algorithms to remove anomalous data points, resulting in a dataset representative of the underlying distribution. In the Model Training step, we design and train a NN architecture that fits our data, with the goal of maximizing the F1-score. Finally, in the Results Evaluation step, we compare and analyze the performance of the different models and the percentages of outlier removal.
+
+%https://app.diagrams.net/#G1xCRaIQw3030f54n04zCV5T5_WOJ2-eqh#%7B%22pageId%22%3A%228GfI8ZPY3qQ9-267OYNW%22%7D
+\begin{figure}[h]
+\centering
+	\includegraphics[width = \linewidth]{Images/methodology_schema.png}
+	\caption{Overall methodology with the five steps}
+        \label{fig:schema}
+\end{figure}
+
+\subsection{Data Preparation}
+
+The RFM method simplifies the understanding of the customer by focusing on just three variables, thus reducing the complexity of the analysis. This approach involves transforming the raw data obtained from different sources into the following three key variables\cite{39}:
+
+\begin{itemlist}
+    \item \textbf{Recency (R):} Represents how recently a tourist visited the area, measured by the difference between their most recent visit and the time of the analysis.
+    \item \textbf{Frequency (F):} Reflects how often a tourist visits the area, calculated as the number of visits.
+    \item \textbf{Monetary (M):} Represents the total amount spent by a tourist during all visits.
+\end{itemlist}
+
+\subsection{RFM labeling}\label{subsec:label}
+
+This step divides the variables recency, frequency, and monetary into quintiles\cite{1}. Quintiles divide the data into five equal parts, each representing 20\% of the data: Quintile $Q1$ represents the bottom 20\% and $Q5$ the top 20\%. Each customer receives a score, in the form of a label, for each variable. For frequency, clients are sorted from most frequent ($Q5$) to least frequent ($Q1$); for monetary, from the highest value ($Q5$) to the lowest value ($Q1$); and for recency, from most recent ($Q5$) to least recent ($Q1$). The final RFM score is a combination of the three individual scores for recency, frequency, and monetary. For example, a customer belonging to Q5 for recency, Q4 for frequency, and Q3 for monetary would have an RFM label of ``543'', as shown in Table \ref{tab:rfm_def_resumido}. Each cluster also includes the type of customers it represents for the company, which can be negative, neutral or positive. In general, the company is interested in maximizing the positive groups and reducing the negative ones.
+
+
+While the quintile division provides a basic understanding of customer behavior, it can be further refined to create more specific and actionable segments. Once the distinct customers have been identified and the RFM labels have been set, marketing strategies can be applied accordingly to the different groups. Some studies have explored segmentations with seven segments\cite{40}, while others, such as Karakan et al.\cite{21} opted for a ten cluster segmentation but only for recency and frequency, without considering monetary. In our research, we opted to define eleven customer segments\footnote{\url{https://www.r-bloggers.com/2019/07/customer-segmentation-using-rfm-analysis/}} for the three variables of the RFM model, as in İ. Kabasakal\cite{41} and in the Putler analytics tool\footnote{\url{https://www.putler.com/rfm-analysis}}. The RFM label column of Table \ref{tab:rfm_def_resumido} is an extended version from the Putler analytics tool, where all possible combinations of quintiles have been covered. This more granular segmentation allows us to gain deeper insight into tourists and customize our marketing strategies more effectively.
+
+
+\begin{table}[]
+\caption{\\ Definitions of RFM theoretical clusters}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{cccc}
+\hline
+\textbf{Name} & \textbf{Description} & \textbf{Type} & \textbf{RFM Label} \\ \hline
+Champions & \begin{tabular}[c]{@{}c@{}}Most valuable and loyal customers, \\ with recent and frequent purchases.\end{tabular} & Positive & R: 4-5, F: 4-5, M: 4-5 \\ 
+Loyal customers & \begin{tabular}[c]{@{}c@{}}Loyal customers with consistent \\ purchases, though not as frequent \\ as champions.\end{tabular} & Positive & R: 3-5, F: 3-5, M: 3-5 \\ 
+Potential Loyalists & \begin{tabular}[c]{@{}c@{}}Customers with recent purchases \\ showing potential to become loyal.\end{tabular} & Positive & R: 3-5, F: 2-5, M: 1-3 \\ 
+New customers & \begin{tabular}[c]{@{}c@{}}New customers who have made \\ their first purchase recently.\end{tabular} & Positive & R: 3-5, F: 1-2, M: 1-2 \\ 
+Promising & \begin{tabular}[c]{@{}c@{}}Customers with recent purchases \\ showing potential but not yet loyal.\end{tabular} & Positive & R: 3-5, F: 1-2, M: 1-5 \\ 
+Need attention & \begin{tabular}[c]{@{}c@{}}Customers needing attention due \\ to recent decline in purchase activity.\end{tabular} & Neutral & R: 3-5, F: 2-4, M: 3-5 \\ 
+Can not lose them & \begin{tabular}[c]{@{}c@{}}Valuable customers showing signs \\ of dissatisfaction or decreased activity.\end{tabular} & Negative & R: 1-2, F: 4-5, M: 3-5 \\ 
+At risk & \begin{tabular}[c]{@{}c@{}}Customers at risk of being lost \\ due to decreased purchase activity.\end{tabular} & Negative & R: 1-2, F: 2-5, M: 2-5 \\ 
+Hibernating & \begin{tabular}[c]{@{}c@{}}Inactive customers who may be recoverable \\ but require significant efforts to reactivate.\end{tabular} & Negative & R: 1-3, F: 1-3, M: 1-3 \\ 
+About to sleep & \begin{tabular}[c]{@{}c@{}}Inactive customers who used to be \\ loyal but have stopped purchasing recently.\end{tabular} & Negative & R: 2-3, F: 1-5, M: 1-3 \\ 
+Lost & \begin{tabular}[c]{@{}c@{}}Lost customers who have stopped \\ interacting or purchasing from\\ the company for a prolonged period.\end{tabular} & Negative & R: 1, F: 1-5, M: 1-2 \\ \hline
+\end{tabular}%
+}
+\label{tab:rfm_def_resumido}
+\end{table}
+
+\subsection{Anomaly detection}
+
+Anomaly detection is important in enhancing the accuracy and reliability of machine learning models. By identifying and eliminating data points that deviate significantly from the norm, we mitigate the risk of these outliers skewing model performance or leading to erroneous conclusions. We apply multiple outlier detection methods independently to evaluate their performance and identify the most suitable technique for our data: LDIS, k-medoids, Isolation Forest, Z-score, and IQR. To determine the optimal number of outliers to remove, we conduct an iterative process, increasing the percentage of outliers identified by each method and evaluating the impact on model performance after each removal. This allows us to identify the threshold at which further outlier removal began to negatively affect model performance by reducing its ability to generalize to new data.
+
+
+\subsection{Model tuning and training}
+
+%In this use case, our goal is to classify each individual into their respective customer segment. 
+We have implemented a supervised classification model to assign tourists to their corresponding RFM segments. To evaluate the model, we divide the data into three sets: training (70\%), validation (10\%), and test (20\%). We validate  the NN using 10-fold cross-validation, and  Cross-Entropy Loss function\cite{42}, which measures the discrepancy between the model's predicted class probabilities and the actual labels, thus providing a reliable metric for classification tasks.
+
+\subsection{Evaluation and comparison}
+
+We use the F1-score as metric due to its balanced consideration of precision and recall, particularly relevant given the potential for class imbalance in our data\cite{43,44}. To avoid bias towards larger classes, we employ macro-averaged F1-score for evaluation metrics. Additionally, we measure model training time to assess its efficiency.
+
+\section{Results and discussion} \label{sec:experiment}
+
+Our experiment is focused on a rural tourist area, encompassing three rural villages near the Sierra Nevada National Park in Granada, Spain. We have implemented an LPR camera system to monitor traffic flow. This system comprises four Hikvision LPR IP cameras equipped with Deep Learning-based ANPR technology, which tracks vehicle movement at entry and exit points of the three villages within the area. {\color{black} Prior to installing the cameras, agreements were signed with the competent authorities to ensure compliance with national regulations. The LPR devices transmit anonymised information to a secure server. With the exception of the Spanish Directorate-General for Traffic (DGT\footnote{\url{https://sede.dgt.gob.es/es/vehiculos/}}) data, all variables used are publicly available. The DGT provided confidential data exclusively for research purposes under a formal agreement. These records are stored in encrypted form and are accessible only to authorised researchers.} The dataset covers the period from February 2022 to June 2023, totaling 17 months. 
+
+\subsection{Data Preparation}
+
+From the four installed cameras, we gather the timestamp of vehicle passage along with their license plate and camera identifier. {\color{black}In the IoT context, sensor data often contains incomplete detections or missing records, so preprocessing is essential. In the case of LPR, incomplete detections refer specifically to lincese plates where one or more digits are not captured correctly. Following Bolaños-Martinez et al.\cite{cleaning}, we applied two cleaning steps to the LPR data. The first, license plate matching, corrected incomplete detections, affecting about 2\% of records, by assigning the same plate number to detections that matched at least four of seven characters. The second, route recovery, inferred vehicle passage when intermediate cameras failed, recalculating stay time if detections occurred within 30 minutes.}
+
+Using this information, we construct a dataset centered around the vehicle.  In Table \ref{tab:datasets}, we can observe the different variables collected and how they are transformed into the variables we will use for the RFM problem. Starting with their license plate, we obtain the following variables: the number of entries into the area (frequency), the date and time of their last visit (recency), the total time spent in hours during visits to the area, {\color{black}the maximum number of seats per vehicle, and their postal code, the last two} retrieved from the DGT. Using the postal code and total visit time, we can approximate the average expenditure of the vehicle in the area (monetary). This approximation is derived from data provided by the National Statistics Institute (Spanish: Instituto Nacional de Estadistica, INE) on ``Travel, overnight stays, average duration, and expenditure per location of residence of travelers\footnote{\url{https://www.ine.es/jaxiT3/Tabla.htm?t=12448&L=0}}''. The information on tourism expenditure provided by the INE is per individual, while the cameras collect data per vehicle. {\color{black}To bridge this gap and map vehicle detections to actual tourist behavior, we conducted on-site questionnaires during January, March, and July 2023, questioning 522 drivers about their vehicle occupancy.} From these questionnaires, we estimated an average occupancy of 52\% per vehicle. {\color{black}This allowed us to translate vehicle-level data into an approximate number of tourists associated with each detection.} For each vehicle, we then multiply their total stay time by the average daily expenditure and by 52\% of their seating capacity, considering the postal code and the period of the visit (month and year).
+
+% Please add the following required packages to your document preamble:
+% \usepackage{multirow}
+% \usepackage{graphicx}
+\begin{table}[ht]
+\caption{\\ Description of the variables needed to build the dataset for our RFM analysis. \\ \textit{*This information was stored encrypted and is accessible only to authorized researchers.}}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{ccc|ccc}
+\toprule
+\multicolumn{3}{c|}{\textbf{Raw dataset}} & \multicolumn{3}{c}{\textbf{RFM dataset}} \\ \midrule
+\textbf{Variable} & \textbf{Description} & \textbf{Source} & \textbf{Variable} & \textbf{Description} & \textbf{Source} \\ \midrule
+num\_plate & \begin{tabular}[c]{@{}c@{}}Number that identifies \\ each vehicle\end{tabular} & \begin{tabular}[c]{@{}c@{}}LPR \\ cameras\end{tabular} & num\_plate\_ID & \begin{tabular}[c]{@{}c@{}}License plate number \\ anonymized\end{tabular} & (*) \\ \midrule
+entry\_datetime & \begin{tabular}[c]{@{}c@{}}Area first entry \\ timestamp \\ (date and time)\end{tabular} & \begin{tabular}[c]{@{}c@{}}LPR \\ cameras\end{tabular} & \multicolumn{3}{c}{} \\ \midrule
+exit\_datetime & \begin{tabular}[c]{@{}c@{}}Area last exit \\ timestamp \\ (date and time)\end{tabular} & \begin{tabular}[c]{@{}c@{}}LPR \\ cameras\end{tabular} & recency (R) & \begin{tabular}[c]{@{}c@{}}Duration between \\ the timestamp of \\ the last visit \\ and the current time\end{tabular} & \begin{tabular}[c]{@{}c@{}}LPR \\ cameras\end{tabular} \\ \midrule
+total\_entries & \begin{tabular}[c]{@{}c@{}}Total number of \\ entries in the area\end{tabular} & \begin{tabular}[c]{@{}c@{}}LPR \\ cameras\end{tabular} & frequency (F) & \begin{tabular}[c]{@{}c@{}}Frequency of entries \\ in the area\end{tabular} & \begin{tabular}[c]{@{}c@{}}LPR \\ cameras\end{tabular} \\ \midrule
+visit\_time & \begin{tabular}[c]{@{}c@{}}Time of stay of the \\ vehicle in the area\\ (sum of the different \\ entry-exit timestamps)\end{tabular} & \begin{tabular}[c]{@{}c@{}}LPR \\ cameras\end{tabular} & \multirow{3}{*}{monetary (M)} & \multirow{3}{*}{\begin{tabular}[c]{@{}c@{}}The approximate amount \\ of money consumed \\ by the occupants \\ of the vehicle in \\ the area during \\ the visit period\end{tabular}} & \multirow{3}{*}{\begin{tabular}[c]{@{}c@{}}LPR cameras, \\ INE\\ Questionnaires \\ and DGT\end{tabular}} \\ \cmidrule(lr){1-3}
+num\_seats & \begin{tabular}[c]{@{}c@{}}Maximum number \\ of vehicle seats\end{tabular} & DGT &  &  &  \\ \cmidrule(lr){1-3}
+postcode & \begin{tabular}[c]{@{}c@{}}National postal code \\ of the vehicle’s \\ provenance\end{tabular} & DGT &  &  &  \\ \bottomrule
+\end{tabular}%
+}
+\label{tab:datasets}
+\end{table}
+
+
+The RFM analysis is commonly used in marketing to assess consumer behavior within a company. We have adapted RFM to our data, just as others have adapted it to their data, for example using payment terminals\cite{8} or e-commerce web user behaviors\cite{7}. Our study applies RFM by treating tourists as "consumers" in a specific area, adapting RFM variables to visitor behavior (see in Table \ref{tab:datasets}). To focus exclusively on visitors, we must exclude residents and "false residents" from the dataset. False residents are individuals who have a residence in the area but are not officially registered. We exclude these groups because they do not align with our definition of tourists, as their spending behavior is different from the tourist. Residents are eliminated based on the postal codes of the municipalities in the area. To remove false residents, we use the upper and lower thresholds provided by the IQR method on the three RFM variables. Since most tourists only visit the area one time (frequency equal to 1), the upper bound of the IQR threshold for the frequency variable is only 3.5, so some visitors could be erroneously treated as false residents. {\color{black}Hence, to refine the upper-bound frequency, Figure \ref{fig:eleven} plots the number of visits, $t$ (F, frequency), on the x-axis, and the number of cars with that number of visits, $N_t$, on the y-axis. As observed, around $t = 11$, the number of vehicles stabilizes, indicating that a higher number of visits involves fewer visitors’ cars. This elbow is better understood through the values shown in Table \ref{tab:eleven}. Table \ref{tab:eleven} lists, in the first column, the number of visits $t$ (ranging from 9 to 13), and in the second column, the total number of vehicles with that number of visits, $N_t$. For instance, $N_9 = 2,930$ denotes that a total of 2,930 vehicles were observed with $t = 9$ visits. For $t = 10$, the value of $N_{10}$ decreases to 2,486. It can be observed that higher values of $t$ correspond to a smaller numbers of vehicles satisfying this condition. Specifically, increasing the number of visits from $t = 10$ to $t = 11$ results in a decrease of 197 vehicles. This is shown in column 3, where $\Delta_t = N_t - N_{t+1}$ represents a reduction of 7.92\%, as indicated in column 4. Beyond this point, the reductions become smaller and more stable. For this reason, if a car enters the area more than 11 times during the one-year-and-four-month period covered by our dataset, we consider it a resident.}
+
+\begin{table}[ht]
+\caption{\\ \color{black}Number of vehicles for each frequency (number of visits) between 9 and 13. $t$ is the number of visits. $N_t$ indicates the number of vehicles with $t$ visits. $\Delta_t = N_t - N_{t+1}$ shows the decrease in the number of vehicles when the value increases from $t$ to $t+1$. $\Delta_t$ \% shows the decrease $\Delta_t$ as percentage.}
+\centering
+\resizebox{0.8\textwidth}{!}{%
+\begin{tabular}{rrrr}
+\hline
+{ Frequency: $t$} & { Number of vehicles: $N_t$} & { $\Delta_t = N_t - N_{t+1}$} & { $\Delta_t$ \%} \\ \hline
+{ 9}   & { 2930}                       & { 444}                    & { 15.15}                     \\
+{ 10}  & { 2486}                       & { 197}                    & { 7.92}                     \\
+{ 11}  & { 2289}                     & { 133}                    & { 5.81}                     \\
+{ 12}  & { 2156}                    & { 105}                    & { 4.87}                     \\
+{ 13}  & { 2051}                   & { 84}                     & { 4.10}                     \\ \hline
+\end{tabular}
+}
+\label{tab:eleven}
+\end{table}
+
+
+
+\begin{figure}[h]
+\centering
+	\includegraphics[width = 0.8\linewidth]{Images/11-threshold-2.png}
+	\caption{\color{black}Number of vehicles $N_t$, based on their number of visits ($t$) in the area. The vertical red line marks $t = 11$ visits, which is the selected limit used in the analysis.}
+        \label{fig:eleven}
+\end{figure}
+
+
+Figure \ref{fig:removal-first} shows the original dataset (in blue) and the dataset after the elimination of residents and false residents (in red). The percentage of residents and false residents eliminated accounted for approximately 15\% of the initial sample.
+
+%\end{figure}
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.44\textwidth}
+        \includegraphics[width=\textwidth]{Images/output1.png}
+        \caption{Original points before removal}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.44\textwidth}
+        \includegraphics[width=\textwidth]{Images/output2.png}
+        \caption{Points after removal (in red)}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.44\textwidth}
+        \includegraphics[width=\textwidth]{Images/output3.png}
+        \caption{Zoom points after removal}
+    \end{subfigure}
+    \caption{Comparison between the plot before and after removal of residents and false residents}
+    \label{fig:removal-first}
+\end{figure}
+
+
+\subsection{RFM labeling}
+
+From the RFM dataset, we have performed cluster labeling as proposed in Section \ref{subsec:label}. Table \ref{tab:clusters-rfm} displays the eleven created clusters along with their respective percentages and the average values for the variables: recency (in days), frequency (in number of visits), and monetary (in euros). On the one hand, we can observe that the smallest cluster is that of champions (0.44\%), followed by loyal customers (0.78\%). This makes sense because champions represent the most loyal and committed tourists, so it is natural that they constitute a smaller portion of the tourist base. On the other hand, the two largest groups are promising (31.27\%) and new customers (18.73\%), as most of the vehicles are visiting the area for the first time, placing them in these categories of potentially valuable but not yet established tourists. Figure \ref{fig:rfm-clusters} illustrates the distribution of these eleven clusters using different colors. The figure shows two perspectives (front and back) to better appreciate each cluster. The data in the figures are normalized between 0 and 1 for the three variables to facilitate visualization, and this normalization is applied exclusively for Figures \ref{fig:rfm-clusters},\ref{fig:outliers-1} and \ref{fig:outliers-2}.
+
+% Please add the following required packages to your document preamble:
+% \usepackage{graphicx}
+\begin{table}[]
+\caption{\\Count of individuals per cluster and mean values per RFM variable}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{cccccc}
+\hline
+\textbf{Cluster name} & \textbf{Count} & \textbf{Percent} & \textbf{\begin{tabular}[c]{@{}c@{}}Recency \\ mean\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}Frequency\\ mean\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}Monetary \\ mean\end{tabular}} \\ \hline
+Champions & 260 & 0.44\% & 103.14 & 4.88 & 414.33 \\ 
+Loyal customers & 457 & 0.78\% & 267.84 & 3.57 & 371.51 \\
+Potential Loyalists & 806 & 1.37\% & 229.60 & 2.63 & 19.28 \\
+New customers & 11,016 & 18.73\% & 181.75 & 1.04 & 4.18 \\
+Promising & 18,390 & 31.27\% & 181.78 & 1.13 & 143.38 \\ 
+Need attention & 1,409 & 2.4\% & 243.62 & 2.37 & 229.61 \\
+Can not lose them & 9,350 & 15.9\% & 408.67 & 1.03 & 170.20 \\
+At risk & 2,743 & 4.66\% & 383.20 & 2.50 & 289.50 \\
+Hibernating & 5,233 & 8.91\% & 346.77 & 1.27 & 8.39 \\
+About to sleep & 5,199 & 8.84\% & 319.59 & 1.15 & 14.13 \\
+Lost & 3,938 & 6.7\% & 434.62 & 1.05 & 7.35 \\ \hline
+\end{tabular}%
+}
+\label{tab:clusters-rfm}
+\end{table}
+
+%\end{figure}
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.43\textwidth}
+        \includegraphics[width=\textwidth]{Images/cluster-rfm-back.png}
+        \caption{Front side}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.56\textwidth}
+        \includegraphics[width=\textwidth]{Images/cluster-rfm-front.png}
+        \caption{Back side}
+    \end{subfigure}
+    \caption{Distribution of points for each theoretical cluster RFM}
+    \label{fig:rfm-clusters}
+\end{figure}
+
+\subsection{Anomaly detection}
+
+We apply anomaly detection methods to the RFM dataset by eliminating potential outliers, which in this case are individual data points representing tourist vehicles. To understand the intuition behind each outlier removal algorithm, in Figure \ref{fig:outliers-1} we visualize the geometry of the data after applying each algorithm, forcing the removal of a high percentage of outliers. These extreme removals allow us to compare the geometry of the data before (Figure \ref{fig:rfm-clusters}) and after the removals (Figure \ref{fig:outliers-1}). In particular, Figure \ref{fig:outliers-1} illustrates the Isolation Forest, Z-score, and IQR methods, removing 25\% (Figure \ref{fig:outliers-1} a, c, e) and 50\% (Figure \ref{fig:outliers-1} b, d, f) of the points. Comparing these figures with the original distribution of the clusters in Figure \ref{fig:rfm-clusters}, we can draw the following conclusions. The Isolation Forest method eliminates isolated points within clusters, potentially leading to an uneven distribution among clusters, particularly noticeable for the orange and black clusters. The Z-score method follows more rectangular geometries in outlier removal, primarily making horizontal cuts due to its reliance on standard deviations from the mean. This is evident in the blue and black clusters. The IQR method also exhibits a similar removal structure to Z-score, with geometric shapes. However, it affects different areas associated with the quartiles of each cluster, often resulting in more vertical cuts because it removes data points outside the interquartile range.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.44\textwidth}
+        \includegraphics[width=\textwidth]{Images/25-isolation.png}
+        \caption{25\% Isolation Forest method}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.44\textwidth}
+        \includegraphics[width=\textwidth]{Images/50-isolation.png}
+        \caption{50\% Isolation Forest method}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.44\textwidth}
+        \includegraphics[width=\textwidth]{Images/25-zscore.png}
+        \caption{25\% Z-score method}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.44\textwidth}
+        \includegraphics[width=\textwidth]{Images/50-zscore.png}
+        \caption{50\% Z-score method}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.44\textwidth}
+        \includegraphics[width=\textwidth]{Images/25-cuartil.png}
+        \caption{25\% IQR method}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.44\textwidth}
+        \includegraphics[width=\textwidth]{Images/50-cuartil.png}
+        \caption{50\% IQR method}
+    \end{subfigure}
+    \caption{Percentage of outliers removed with each technique}
+    \label{fig:outliers-1}
+\end{figure}
+
+Likewise, in Figure \ref{fig:outliers-2}, we showcase the LDIS and k-medoids methods, removing 25\% (Figure \ref{fig:outliers-2} a, c) and 50\% (Figure \ref{fig:outliers-2} b, d) of the data. LDIS method removes outliers with circular geometries. The transition from 25 to 50\% removal gradually shrinks the cluster circles concentrically, noticeable in the dark blue and orange clusters. k-medoids eliminates points based on the medoids, thus maintaining the initial cluster structures better, discarding points further away from the medoids.
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.44\textwidth}
+        \includegraphics[width=\textwidth]{Images/25-LDIS.png}
+        \caption{25\% LDIS method}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.44\textwidth}
+        \includegraphics[width=\textwidth]{Images/50-LDIS.png}
+        \caption{50\% LDIS method}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.44\textwidth}
+        \includegraphics[width=\textwidth]{Images/25-medoids.png}
+        \caption{25\% k-medoids method}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.44\textwidth}
+        \includegraphics[width=\textwidth]{Images/50-medoids.png}
+        \caption{50\% k-medoids method}
+    \end{subfigure}
+    \caption{Percentage of outliers removed with each technique}
+    \label{fig:outliers-2}
+\end{figure}
+
+
+\subsection{Model tuning and training}
+
+Before training the model, we conduct two preprocessing steps on the dataset resulting from outlier removal: data normalization and weight adjustment to correct class imbalance. Data normalization involve transforming the data to follow a uniform or normal distribution using a quantile transformer\footnote{\url{https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.QuantileTransformer.html}}. This transformation tends to spread out frequent values and diminishes the impact of outliers, and it is applied to each feature separately. Initially, we estimate the cumulative distribution function of a feature to map original values to a uniform distribution. Then, using the associated quantile function, we mapped these values to the desired output distribution. Any feature values falling below or above the adjusted range were assigned to the output distribution boundaries. To address class imbalance, we analyze the class distribution of the target variable. This distribution helps us understand the frequency of each class within the dataset. Based on this distribution, we calculate class weights inversely proportional to class frequencies. These weights were utilized to create a weighted random sampler\cite{45}. This sampler ensured proper representation of each class during training by adjusting the sampling probability based on the calculated class weights.
+
+{\color{black}We develop a multi-classification NN with 18 layers, combining linear, batch normalization, ReLU, and multihead-attention blocks.} For model training, we used an NVIDIA GeForce RTX 3090 GPU with a total memory of 25.45 gigabytes, supporting CUDA compute architecture 8.6. We utilize an Anaconda environment compatible with Python 3.9.18.  {\color{black}To optimize performance and ensure robust generalization, we conducted a comprehensive grid search over the key hyperparameters, including learning rate, number of epochs, batch size, and layer configurations. Each candidate setup was rigorously evaluated using repeated cross-validation, and the optimal configuration was selected based on validation accuracy and training stability. The full network architecture and the range of hyperparameters explored are detailed in \ref{ap:nn}.}
+
+\subsection{Evaluation and comparison} \label{subsec:results}
+
+First, we conducted model training using the original data, without outlier removal. Figure \ref{fig:neural_100} presents a comparison of training-validation sets regarding accuracy (left) and loss (right) per epoch metrics for our classification model. We notice that the peak accuracy on the validation set occurs between epochs 65 and 100. As for the loss graph, it suggests that the model generally avoids overfitting, with the validation line stabilizing around epoch 70, indicating cessation in improvement. Hence, we will set the number of epochs to 70 for the experiments conducted for each outlier removal method. We assume that, in general, training a model with fewer data (with the outliers already removed) needs fewer epochs than with more data (original data). Training a model with more epochs than it needs could lead to overfit. Hence, we will check the overfitting as well.
+
+\begin{figure}[h]
+\centering
+	\includegraphics[width = \linewidth]{Images/neural_100.png}
+	\caption{NN training without outlier elimination}
+        \label{fig:neural_100}
+\end{figure}
+
+Table \ref{tab:f1-table} presents the results of the F1-score metrics for the different outlier removal methodologies applied. The table comprises the macro-averaged F1-score and F1-score for each of the eleven classes, and the processing time for each method. Outlier removal analysis has been conducted for 0, 2, 5, and 10\% of the points. It is worth noting that the IQR method does not allow for eliminating less than 10\% of the points. This is because the IQR method is based on the difference between Q3 and Q1 (see in Section \ref{sec:outliers_method}), which limits the threshold for identifying potential outliers. However, as it does yield worse results than other methods, we discard this method. The recall and precision results were proportional to the F1-score metric, and hence the following discussion on F1-score applies also to recall and precision. In \ref{ap:metrics}, we provide Table \ref{tab:precision-table} for precision and Table \ref{tab:recall-table} for recall metrics.
+
+% Please add the following required packages to your document preamble:
+% \usepackage{multirow}
+% \usepackage{graphicx}
+% Please add the following required packages to your document preamble:
+% \usepackage{multirow}
+% \usepackage{graphicx}
+\begin{sidewaystable}
+\centering
+\vspace*{10cm}
+\caption{\\ Results for the F1-score metric for the different outlier elimination methodologies tested}
+\resizebox{19cm}{!}{%
+\begin{tabular}{ccccccccccccccc}
+\hline
+\textbf{\begin{tabular}[c]{@{}c@{}}\% outliers\\ removed\end{tabular}} & \textbf{Method} & \textbf{\begin{tabular}[c]{@{}c@{}}Macro-averaged\\ F1-score\end{tabular}} & \multicolumn{11}{c}{\textbf{\begin{tabular}[c]{@{}c@{}}F1-score \\ class (support)\end{tabular}}} & \textbf{\begin{tabular}[c]{@{}c@{}}Processing\\ time (sec.)\end{tabular}} \\ \hline
+\multirow{2}{*}{0} &  &  & \textbf{\begin{tabular}[c]{@{}c@{}}champions \\ (52)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}loyal customers\\ (91)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}potential loyalist \\ (161)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}new customers \\ (2203)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}promising \\ (3678)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}need attention \\ (282)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}about to sleep \\ (1040)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}can't lose them \\ (1870)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}at risk \\ (549)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}hibernating \\ (1047)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}lost \\ (788)\end{tabular}} &  \\ 
+ & None & 0.92 & 0.96 & 0.91 & 0.82 & 0.97 & 0.97 & 0.90 & 0.87 & 0.97 & 0.96 & 0.92 & 0.92 & 477.409773 \\ \hline
+\multirow{5}{*}{2} &  &  & \textbf{\begin{tabular}[c]{@{}c@{}}champions \\ (51)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}loyal customers\\ (89)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}potential loyalist \\ (158)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}new customers \\ (2159)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}promising \\ (3604)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}need attention \\ (276)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}about to sleep \\ (1019)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}can't lose them \\ (1833)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}at risk \\ (537)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}hibernating \\ (1026)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}lost \\ (772)\end{tabular}} &  \\ 
+ & \begin{tabular}[c]{@{}c@{}}Isolation\\ Forest\end{tabular} & 0.94 & 0.97 & 0.94 & 0.85 & \textbf{0.98} & 0.96 & 0.90 & 0.87 & 0.95 & 0.98 & \textbf{0.97} & 0.95 & 475.916218 \\
+ & Z-score & 0.93 & 0.98 & 0.91 & 0.84 & 0.97 & 0.96 & 0.88 & 0.89 & 0.97 & 0.98 & 0.95 & 0.95 & 472.131353 \\
+ & LDIS & 0.92 & 0.98 & 0.82 & 0.81 & 0.97 & 0.96 & 0.84 & 0.89 & 0.97 & 0.95 & 0.96 & 0.96 & 721.802471 \\
+ & k-medoids & 0.92 & 0.94 & 0.89 & 0.79 & 0.97 & 0.95 & 0.87 & 0.86 & 0.95 & 0.97 & 0.95 & \textbf{0.98} & 542.128318 \\ \hline
+\multirow{5}{*}{5} &  &  & \textbf{\begin{tabular}[c]{@{}c@{}}champions \\ (49)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}loyal customers\\ (87)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}potential loyalist \\ (153)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}new customers \\ (2093)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}promising \\ (3494)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}need attention \\ (268)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}about to sleep \\ (988)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}can't lose them \\ (1777)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}at risk \\ (521)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}hibernating \\ (994)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}lost \\ (748)\end{tabular}} &  \\ 
+ & \begin{tabular}[c]{@{}c@{}}Isolation\\ Forest\end{tabular} & 0.88 & 0.62 & 0.84 & 0.75 & 0.97 & 0.95 & 0.81 & 0.87 & 0.97 & 0.98 & 0.94 & 0.94 & 551.319821 \\
+ & Z-score & \textbf{0.95} & 0.97 & 0.94 & 0.82 & 0.97 & \textbf{0.98} & 0.91 & \textbf{0.91} & \textbf{0.99} & \textbf{0.99} & \textbf{0.97} & \textbf{0.98} & 459.321308 \\
+ & LDIS & 0.91 & 0.94 & 0.86 & 0.80 & 0.96 & 0.96 & 0.88 & 0.89 & 0.97 & 0.96 & 0.91 & 0.92 & 707.175863 \\
+ & k-medoids & 0.92 & \textbf{1.00} & 0.92 & 0.78 & 0.96 & 0.96 & 0.85 & 0.88 & 0.97 & 0.97 & 0.94 & 0.95 & 535.476016 \\ \hline
+\multirow{6}{*}{10} &  &  & \textbf{\begin{tabular}[c]{@{}c@{}}champions \\ (47)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}loyal customers\\ (82)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}potential loyalist \\ (145)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}new customers \\ (1983)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}promising \\ (3310)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}need attention \\ (253)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}about to sleep \\ (936)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}can't lose them \\ (1683)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}at risk \\ (494)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}hibernating \\ (942)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}lost \\ (709)\end{tabular}} &  \\ 
+ & \begin{tabular}[c]{@{}c@{}}Isolation\\ Forest\end{tabular} & \textbf{0.95} & 0.97 & \textbf{0.98} & 0.88 & \textbf{0.98} & 0.95 & \textbf{0.93} & 0.90 & 0.96 & \textbf{0.99} & 0.95 & 0.96 & 437.114016 \\
+ & Z-score & 0.91 & 0.71 & 0.89 & \textbf{0.92} & 0.97 & 0.96 & 0.92 & 0.89 & 0.96 & 0.96 & 0.92 & 0.93 & 432.924060 \\
+ & IQR & 0.92 & 0.96 & 0.91 & 0.82 & 0.97 & 0.97 & 0.90 & 0.87 & 0.97 & 0.96 & 0.92 & 0.92 & 478.195149 \\
+ & LDIS & 0.94 & 0.99 & 0.94 & 0.82 & \textbf{0.98} & 0.96 & 0.87 & 0.90 & 0.96 & 0.96 & 0.96 & 0.94 & 687.128242 \\
+ & k-medoids & 0.91 & 0.99 & 0.91 & 0.74 & 0.96 & 0.94 & 0.84 & 0.86 & 0.95 & 0.97 & 0.92 & 0.92 & 528.983753 \\ \hline
+\end{tabular}%
+}
+\label{tab:f1-table}
+\end{sidewaystable}
+
+The results in Table \ref{tab:f1-table} indicate that with a 2\% outlier removal, all methods either improve or equal the macro-averaged F1-score without using outlier removal, highlighting an improvement of up to 0.02 points for Isolation Forest. The method with the most efficient processing time is Z-score, reducing even the processing time without outlier elimination and surpassing the macro-averaged F1-score value by 0.01 points. Overall, the results remark that the top-performing methods are Z-score with 5\% and Isolation Forest with 10\% outlier removal, both achieving a macro-averaged F1-score of 0.95. After excluding the outliers, these methods converge approximately ten epochs earlier than the original model, although they do not cause an overfit in the model between the train and validation distributions. Examining the classification values for each of the eleven classes in each case, Z-score achieves better classification values for negative type classes {\color{black}(promising, about to sleep, can't lose them, hibernating, and lost)}, identifying visitors who should be considered for reactivating their visits, while Isolation Forest excels in classifying those related to customers who should be considered for loyalty or benefits programs {\color{black}(loyal customers, potential loyalists, new customers, and those needing attention)}. {\color{black}Statistical filters such as Z-score remove observations that deviate strongly from the global mean, reducing variance and class overlap. This benefits broad and diffuse tourist segments, especially those with high intra-class variability, such as promising, about to sleep, or hibernating\cite{Aggarwal2017OutlierAnalysis} (see in Figure \ref{fig:outliers-1} c, d). In contrast, isolation-based methods like Isolation Forest identify locally inconsistent points through recursive partitioning, which reduces boundary noise and improves classification for structured, loyalty-related segments such as loyal customers, potential loyalists, or need attention\cite{35} (see in Figure \ref{fig:outliers-1} a, b).}
+
+{\color{black}This class-dependent behavior is further explained by the nature of the filtering. Cluster-based approaches like k-medoids remove points far from dense cores, which sharpens the separation of compact, high-value groups. This explains why k-medoids with 5\% outliers removed, achieves an F1-score of 1.00 for the champions class, making it ideal for identifying top-value visitors\cite{He2003CBLOF} (see in Figure \ref{fig:outliers-2} c, d). Likewise, local density methods such as LDIS emphasize consistent neighborhoods and thus tend to improve results for large homogeneous groups, like new customers, even if they are less effective for minority segments\cite{Zhang2009LDOF} (see in Figure \ref{fig:outliers-2} a, b).} Notably, the outlier removal methods k-medoids and LDIS, which are not traditionally used for this purpose, yield results below those of the popular methods (Z-score and Isolation Forest). In particular, LDIS achieves a macro-averaged F1-score of 0.94 for 10\% outlier removal, which is 0.02 points higher than the score obtained without using any outlier removal method. Additionally, LDIS scores highest in classifying individuals for the new customers class. For 5\% outlier removal, k-medoids achieves a macro-averaged F1-score of 0.92, matching the score without outlier removal. However, it excels in classifying the champions cluster with an F1-score of 1.00, making it a viable option for identifying the best visitors to the area.
+
+{\color{black}In conclusion, different anomaly detection methods excel in distinct visitor segments: Z-score is particularly effective for reactivating dormant or at-risk groups (e.g., promising), Isolation Forest enhances the identification of loyalty segments, k-medoids performs best for top-value visitors (champions), and LDIS improve classification in large, stable groups such as new customers. Considering these results,} we select the Z-score algorithm with 5\% outlier removal, which combines fast processing (459.32 seconds) with strong overall performance (macro-averaged F1-score $=$ 0.95). Moreover, it effectively identifies negative visitor types, a crucial factor for sustaining engagement. Although alternative approaches like LDIS and k-medoids do not achieve the best global metrics, they remain valuable in niche scenarios, such as refining classification for specific segments.
+
+{\color{black}\subsection{Limitations}} \label{subsec:limitations}
+
+{\color{black} This study has some limitations to consider when interpreting the results. First, using vehicle-level data as a proxy for individual tourist behavior may add noise: vehicle counts and license plates do not necessarily reflect personal activity, since group travel can distort the link between vehicles and tourists. Furthermore, this indicator does not necessarily reflect the origin of all tourists, as vehicles may transport passengers from different geographical areas with different spending behaviors. Second, while the methodology is replicable elsewhere, the findings are not necessarily generalizable. The dataset comes from a rural tourist area in southern Spain, and the observed behavior may differ in other contexts, such as urban destinations or international tourist hubs.}
+
+
+\section{Conclusions} \label{sec:conclusion}
+
+This paper presents a methodology for constructing a {\color{black}visitor-segmentation classifier for a tourist area with an RFM model, focusing on data integration and outlier handling. We employ a multi-head attention NN and evaluate five outlier-detection methods.}
+
+The results demonstrate that the Z-score method is the most efficient for outlier removal, achieving a Macro-average F1-score 0.05 higher than the average and a 23.2\% improvement in processing time. This method is particularly effective in classifying visitor groups {\color{black}as hibernating, at risk or about to sleep, allowing them to be identified in time to prevent potential losses.} The Isolation Forest method also performs well, with a processing time 17.8\% more efficient than the average, despite requiring the removal of 5\% more data points compared to Z-score. It is particularly beneficial for classifying {\color{black}visitors} as promising, new, or loyal visitors{\color{black}, allowing the identification of high-value tourist group profiles.}
+
+Our methodology provides data scientists with a framework to evaluate the impact of outlier removal techniques on the performance of NN models. {\color{black}Furthermore, our findings can guide data analysts in refining their segmentation approaches and making informed decisions to improve tourism marketing strategies. For example, tourism planners and destination management organizations can use segmentation results to design loyalty programs for repeat visitors, allocate resources to the segments with the greatest economic potential, or customize offers to at-risk groups to recapture their interest.}
+
+{\color{black} For future research, incorporating fuzzy logic could allow for more flexible segmentation across group boundaries, while explainable AI would improve model transparency and decision-making. Furthermore, combining these approaches with more comprehensive individual-level data and testing the methodology in diverse geographical and tourism contexts would help overcome current limitations and improve the generalization of results.}
+
+
+\section*{Acknowledgments}
+
+Grant C-SEJ-128-UGR23 funded by Consejería de Universidad, Investigación e Innovación and by ERDF Andalusia Program 2021–2027; project PID2023-149185OB-I00 funded by MICIU/AEI/10.13039/501100011033 and co-funded by ERDF/EU.
+
+\appendix
+
+{\color{black}
+\section{Proposed architecture specifications}
+\label{ap:nn}
+}
+
+We develop a multi-classification NN with 18 layers. The layer structure of our model is presented in Table \ref{tab:neural_model}. Alongside each layer, we provide the value of internal parameters and hyperparameters. The $-1$ value in the output shape column indicates a dynamic dimension that adapts automatically to the batch size of the data. In the context of multihead-attention layers, the output shape is denoted as $[[-1,num\_heads,out\_dim],[-1,Q,K]]$. Here, $num\_heads$ represents the number of attention heads, and $out\_dim$ specifies the output dimension of each attention head. Regarding the secondary vectors used in the attention operation, $Q$ stands for the query dimension, and $K$ represents the key dimension.  {\color{black}Table~\ref{tab:gridsearch} summarizes the hyperparameters explored during the grid search process and presents the final configuration derived from it.}
+
+\begin{table}[]
+\caption{\\Full configuration of the layers of the multihead-attention classification model used.}
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{cccc}
+\hline
+\textbf{Layer name} & \textbf{Output shape} & \textbf{Num. trainable params} & \textbf{Hyperparameters} \\ \hline
+Linear-1 & [-1,1024] & 4,096 &  -\\
+BatchNorm1d-2 & [-1,1024] & 2,048 & - \\
+ReLU-3 & [-1,1024] & 0 & - \\
+MultiHead-Attention-4 & [[-1,2,1024], [-1,1,1]] & 0 & \begin{tabular}[c]{@{}c@{}}num\_heads=2\end{tabular} \\
+Linear-5 & [-1, 512] & 524,800 & - \\
+BatchNorm1d-6 &  [-1, 512] & 1,024 & - \\
+ReLU-7 & [-1, 512] & 0 & - \\
+Linear-8 & [-1, 256] & 131,328 & - \\
+BatchNorm1d-9 & [-1, 256] & 512 & - \\
+ReLU-10 & [-1, 256] & 0 & - \\
+Linear-11 & [-1, 128] & 32,896 & - \\
+BatchNorm1d-12 & [-1, 128] & 256 & - \\
+ReLU-13 & [-1, 128] & 0 & - \\
+Linear-14 & [-1, 64] & 8,256 & - \\
+BatchNorm1d-15 & [-1, 64] & 128 & - \\
+ReLU-16 &  [-1, 64]& 0 & - \\
+MultiHead-Attention-17 & [[-1,2,64], [-1,1,1]] & 0 & \begin{tabular}[c]{@{}c@{}}num\_heads=2\end{tabular} \\
+Linear-18 & [-1, 11] & 715 & - \\ \hline
+\end{tabular}%
+}
+\label{tab:neural_model}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{\\ \color{black}Hyperparameter search space and selected configuration.}
+\label{tab:gridsearch}
+\resizebox{0.8\textwidth}{!}{%
+\begin{tabular}{lcc}
+\hline
+\textbf{Hyperparameter}                    & \textbf{Search Space}                                                                      & \textbf{Selected}                                      \\ \hline
+{ Optimizer}           & { \{AdamW, Adagrad\}}                                       & { \textbf{AdamW}}                  \\
+{ Learning rate}       & { \{5e-6, 5e-5, 5e-4\}}                              & { \textbf{5e-5}}                   \\
+{ Batch size}          & { \{512, 1048, 2048\}}                                   & { \textbf{1048}}                   \\
+{ Weight decay}        & { \{1e-6, 1e-5, 1e-4\}}                               & { \textbf{1e-5}}                   \\
+{ Attention heads}     & { \{1, 2, 4\}}                                                  & { \textbf{2}}                      \\
+{ Attention placement} & { \{none, pre, post, pre+post\}}                      & { \textbf{pre+post}}               \\
+{ Dropout}         & { \{0.0, 0.25, 0.5\}}                                         & { \textbf{0.0}}                    \\
+{ Loss function}       & { \{CrossEntropy, CrossEntropy + weights\}} & { \textbf{CrossEntropy + weights}} \\
+{ Epochs}              & { \{35, 70, 105, 140\}}                                      & { \textbf{70}}                    \\ \hline
+\end{tabular}
+}
+\end{table}
+
+\section{Supplementary metric results}
+\label{ap:metrics}
+
+% Please add the following required packages to your document preamble:
+% \usepackage{multirow}
+% \usepackage{graphicx}
+\vfill
+\begin{sidewaystable}
+\vspace*{10cm}
+\caption{\\ Results for the precision metric for the different outlier elimination methodologies tested}
+\centering
+\resizebox{19cm}{!}{%
+\begin{tabular}{ccccccccccccccc}
+\hline
+\textbf{\begin{tabular}[c]{@{}c@{}}\% outliers\\ removed\end{tabular}} & \textbf{Method} & \textbf{\begin{tabular}[c]{@{}c@{}}Macro-averaged\\ precision\end{tabular}} & \multicolumn{11}{c}{\textbf{\begin{tabular}[c]{@{}c@{}}Precision \\ class (support)\end{tabular}}} & \textbf{\begin{tabular}[c]{@{}c@{}}Processing\\ time (sec.)\end{tabular}} \\ \hline
+\multirow{2}{*}{0} &  &  & \textbf{\begin{tabular}[c]{@{}c@{}}champions \\ (52)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}loyal customers\\ (91)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}potential loyalist \\ (161)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}new customers \\ (2203)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}promising \\ (3678)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}need attention \\ (282)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}about to sleep \\ (1040)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}can't lose them \\ (1870)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}at risk \\ (549)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}hibernating \\ (1047)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}lost \\ (788)\end{tabular}} &  \\ 
+ & None & 0.90 & 0.93 & 0.89 & 0.70 & \textbf{1.00} & \textbf{1.00} & 0.84 & 0.78 & 0.98 & 0.95 & 0.99 & 0.86 & 477.409773 \\ \hline
+\multirow{5}{*}{2} &  &  & \textbf{\begin{tabular}[c]{@{}c@{}}champions \\ (51)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}loyal customers\\ (89)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}potential loyalist \\ (158)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}new customers \\ (2159)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}promising \\ (3604)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}need attention \\ (276)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}about to sleep \\ (1019)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}can't lose them \\ (1833)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}at risk \\ (537)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}hibernating \\ (1026)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}lost \\ (772)\end{tabular}} &  \\ 
+ & \begin{tabular}[c]{@{}c@{}}Isolation\\ Forest\end{tabular} & 0.92 & 0.98 & 0.89 & 0.74 & \textbf{1.00} & \textbf{1.00} & 0.82 & 0.77 & 0.97 & \textbf{1.00} & 0.96 & 0.94 & 475.916218 \\
+ & Z-score & 0.91 & 0.96 & 0.85 & 0.73 & 0.96 & \textbf{1.00} & 0.83 & 0.80 & \textbf{1.00} & 0.98 & 0.99 & 0.90 & 472.131353 \\
+ & LDIS & 0.89 & 0.96 & 0.70 & 0.70 & 0.98 & \textbf{1.00} & 0.75 & 0.83 & 0.97 & 0.97 & 0.98 & 0.94 & 721.802471 \\
+ & k-medoids & 0.89 & 0.89 & 0.86 & 0.67 & 0.98 & \textbf{1.00} & 0.79 & 0.76 & 0.95 & 0.97 & 0.99 & 0.96 & 542.128318 \\ \hline
+\multirow{5}{*}{5} &  &  & \textbf{\begin{tabular}[c]{@{}c@{}}champions \\ (49)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}loyal customers\\ (87)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}potential loyalist \\ (153)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}new customers \\ (2093)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}promising \\ (3494)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}need attention \\ (268)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}about to sleep \\ (988)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}can't lose them \\ (1777)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}at risk \\ (521)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}hibernating \\ (994)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}lost \\ (748)\end{tabular}} &  \\ 
+ & \begin{tabular}[c]{@{}c@{}}Isolation\\ Forest\end{tabular} & 0.85 & 0.46 & 0.74 & 0.64 & 0.98 & \textbf{1.00} & 0.84 & 0.79 & 0.96 & 0.99 & \textbf{1.00} & 0.90 & 551.319821 \\
+ & Z-score & \textbf{0.93} & \textbf{1.00} & 0.89 & 0.70 & \textbf{1.00} & \textbf{1.00} & 0.85 & \textbf{0.85} & \textbf{1.00} & \textbf{1.00} & 0.97 & \textbf{0.97} & 459.321308 \\
+ & LDIS & 0.89 & 0.98 & 0.77 & 0.67 & 0.97 & \textbf{1.00} & 0.81 & \textbf{0.85} & 0.98 & 0.97 & 0.90 & 0.86 & 707.175863 \\
+ & k-medoids & 0.90 & \textbf{1.00} & 0.85 & 0.64 & 0.97 & \textbf{1.00} & 0.78 & 0.82 & 0.99 & 0.98 & 0.91 & 0.90 & 535.476016 \\ \hline
+\multirow{6}{*}{10} &  &  & \textbf{\begin{tabular}[c]{@{}c@{}}champions \\ (47)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}loyal customers\\ (82)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}potential loyalist \\ (145)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}new customers \\ (1983)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}promising \\ (3310)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}need attention \\ (253)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}about to sleep \\ (936)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}can't lose them \\ (1683)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}at risk \\ (494)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}hibernating \\ (942)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}lost \\ (709)\end{tabular}} &  \\ 
+ & \begin{tabular}[c]{@{}c@{}}Isolation\\ Forest\end{tabular} & \textbf{0.93} & 0.94 & \textbf{0.99} & \textbf{0.79} & 0.99 & \textbf{1.00} & \textbf{0.90} & 0.83 & 0.97 & \textbf{1.00} & 0.91 & 0.94 & 437.114016 \\
+ & Z-score & 0.92 & \textbf{1.00} & 0.80 & 0.86 & 0.97 & \textbf{1.00} & 0.87 & 0.83 & 0.98 & \textbf{1.00} & 0.87 & 0.94 & 432.924060 \\
+ & IQR & 0.90 & 0.93 & 0.89 & 0.70 & \textbf{1.00} & \textbf{1.00} & 0.84 & 0.78 & 0.98 & 0.95 & 0.99 & 0.86 & 478.195149 \\
+ & LDIS & 0.91 & \textbf{1.00} & 0.89 & 0.70 & 0.99 & \textbf{1.00} & 0.78 & 0.83 & 0.99 & \textbf{0.97} & 0.96 & 0.93 & 687.128242 \\
+ & k-medoids & 0.88 & \textbf{1.00} & 0.84 & 0.58 & 0.96 & \textbf{1.00} & 0.79 & 0.80 & 0.96 & 1.00 & 0.86 & 0.94 & 528.983753 \\ \hline
+\end{tabular}%
+}
+\label{tab:precision-table}
+\end{sidewaystable}
+
+% Please add the following required packages to your document preamble:
+% \usepackage{multirow}
+% \usepackage{graphicx}
+\begin{sidewaystable}
+\vspace*{10cm}
+\caption{\\ Results for the recall metric for the different outlier elimination methodologies tested}
+\centering
+\resizebox{19cm}{!}{%
+\begin{tabular}{ccccccccccccccc}
+\hline
+\textbf{\begin{tabular}[c]{@{}c@{}}\% outliers\\ removed\end{tabular}} & \textbf{Method} & \textbf{\begin{tabular}[c]{@{}c@{}}Macro-averaged\\ recall\end{tabular}} & \multicolumn{11}{c}{\textbf{\begin{tabular}[c]{@{}c@{}}Recall \\ class (support)\end{tabular}}} & \textbf{\begin{tabular}[c]{@{}c@{}}Processing\\ time (sec.)\end{tabular}} \\ \hline
+\multirow{2}{*}{0} &  &  & \textbf{\begin{tabular}[c]{@{}c@{}}champions \\ (52)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}loyal customers\\ (91)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}potential loyalist \\ (161)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}new customers \\ (2203)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}promising \\ (3678)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}need attention \\ (282)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}about to sleep \\ (1040)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}can't lose them \\ (1870)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}at risk \\ (549)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}hibernating \\ (1047)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}lost \\ (788)\end{tabular}} &  \\ 
+ & None & 0.96 & \textbf{1.00} & 0.93 & 0.99 & 0.94 & 0.94 & 0.98 & 0.98 & 0.95 & 0.97 & 0.86 & \textbf{1.00} & 477.409773 \\ \hline
+\multirow{5}{*}{2} &  &  & \textbf{\begin{tabular}[c]{@{}c@{}}champions \\ (51)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}loyal customers\\ (89)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}potential loyalist \\ (158)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}new customers \\ (2159)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}promising \\ (3604)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}need attention \\ (276)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}about to sleep \\ (1019)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}can't lose them \\ (1833)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}at risk \\ (537)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}hibernating \\ (1026)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}lost \\ (772)\end{tabular}} &  \\ 
+ & \begin{tabular}[c]{@{}c@{}}Isolation\\ Forest\end{tabular} & 0.97 & 0.96 & 0.99 & 0.99 & 0.96 & 0.92 & \textbf{1.00} & \textbf{1.00} & 0.93 & 0.97 & 0.98 & 0.96 & 475.916218 \\
+ & Z-score & 0.97 & \textbf{1.00} & 0.98 & \textbf{1.00} & \textbf{0.97} & 0.92 & 0.92 & \textbf{1.00} & 0.94 & \textbf{0.99} & 0.92 & \textbf{1.00} & 472.131353 \\
+ & LDIS & 0.96 & \textbf{1.00} & 0.99 & 0.97 & \textbf{0.97} & 0.92 & 0.95 & 0.97 & 0.96 & 0.93 & 0.95 & 0.98 & 721.802471 \\
+ & k-medoids & 0.96 & \textbf{1.00} & 0.93 & 0.98 & 0.96 & 0.90 & 0.97 & \textbf{1.00} & 0.95 & 0.96 & 0.92 & 0.99 & 542.128318 \\ \hline
+\multirow{5}{*}{5} &  &  & \textbf{\begin{tabular}[c]{@{}c@{}}champions \\ (49)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}loyal customers\\ (87)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}potential loyalist \\ (153)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}new customers \\ (2093)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}promising \\ (3494)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}need attention \\ (268)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}about to sleep \\ (988)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}can't lose them \\ (1777)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}at risk \\ (521)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}hibernating \\ (994)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}lost \\ (748)\end{tabular}} &  \\ 
+ & \begin{tabular}[c]{@{}c@{}}Isolation\\ Forest\end{tabular} & 0.94 & 0.98 & 0.97 & 0.90 & \textbf{0.97} & 0.90 & 0.78 & 0.98 & \textbf{0.98} & 0.97 & \textbf{0.99} & 0.99 & 551.319821 \\
+ & Z-score & \textbf{0.98} & 0.94 & \textbf{1.00} & \textbf{1.00} & 0.95 & \textbf{0.96} & 0.97 & 0.99 & \textbf{0.98} & 0.97 & 0.97 & \textbf{1.00} & 459.321308 \\
+ & LDIS & 0.95 & 0.90 & 0.99 & 0.99 & 0.96 & 0.91 & 0.97 & 0.92 & 0.96 & 0.94 & 0.91 & \textbf{1.00} & 707.175863 \\
+ & k-medoids & 0.96 & \textbf{1.00} & \textbf{1.00} & 0.99 & 0.95 & 0.92 & 0.93 & 0.94 & 0.94 & 0.96 & 0.97 & \textbf{1.00} & 535.476016 \\ \hline
+\multirow{6}{*}{10} &  &  & \textbf{\begin{tabular}[c]{@{}c@{}}champions \\ (47)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}loyal customers\\ (82)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}potential loyalist \\ (145)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}new customers \\ (1983)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}promising \\ (3310)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}need attention \\ (253)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}about to sleep \\ (936)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}can't lose them \\ (1683)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}at risk \\ (494)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}hibernating \\ (942)\end{tabular}} & \textbf{\begin{tabular}[c]{@{}c@{}}lost \\ (709)\end{tabular}} &  \\ 
+ & \begin{tabular}[c]{@{}c@{}}Isolation\\ Forest\end{tabular} & 0.97 & \textbf{1.00} & 0.96 & \textbf{1.00} & \textbf{0.97} & 0.91 & 0.97 & \textbf{1.00} & 0.96 & \textbf{0.99} & \textbf{0.99} & 0.98 & 437.114016 \\
+ & Z-score & 0.92 & 0.55 & \textbf{1.00} & \textbf{1.00} & \textbf{0.97} & 0.93 & 0.97 & 0.96 & 0.95 & 0.92 & 0.98 & 0.93 & 432.924060 \\
+ & IQR & 0.96 & \textbf{1.00} & 0.93 & 0.99 & 0.94 & 0.94 & 0.98 & 0.98 & 0.95 & 0.97 & 0.86 & \textbf{1.00} & 478.195149 \\
+ & LDIS & 0.97 & 0.98 & \textbf{1.00} & 0.99 & 0.96 & 0.93 & 0.98 & 0.99 & 0.94 & 0.96 & 0.97 & 0.95 & 687.128242 \\
+ & k-medoids & 0.95 & 0.98 & \textbf{1.00} & \textbf{1.00} & 0.96 & 0.89 & 0.90 & 0.94 & 0.94 & 0.95 & \textbf{0.99} & 0.90 & 528.983753 \\ \hline
+\end{tabular}%
+}
+
+\label{tab:recall-table}
+\end{sidewaystable}
+
+\newpage
+
+\bibliographystyle{unsrt}
+\bibliography{biblio}
+
+\end{document}
