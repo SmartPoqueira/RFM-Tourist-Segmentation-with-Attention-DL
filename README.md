@@ -11,6 +11,9 @@ Understanding tourist behavior is essential for destination management. This pro
 3. **Compares outlier removal methods** — Z-Score, IQR, Isolation Forest, K-Medoids, and LDIS — evaluating their effect on downstream classification.
 4. **Classifies tourist segments** using a deep neural network with dual multi-head attention layers.
 
+
+![RFM Architecture](images/architecture.png)
+
 ## Method
 
 ### Attention-Based Classifier

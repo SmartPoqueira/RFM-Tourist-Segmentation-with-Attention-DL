@@ -95,10 +95,6 @@ def train_model(X, y, num_classes, epochs=10, batch_size=1048, learning_rate=6e-
     X_train, X_val, y_train, y_val = train_test_split(X_trainval, y_trainval, test_size=0.1, stratify=y_trainval, random_state=1234)
 
     # Convert to tensors
-    # Normalize features if necessary (Assuming X is already scaled/normalized as typically done before DL)
-    # The notebook did 'X = df_mod[...]'. df_mod might be normalized. Assuming standard scaler applied before or features are reasonable range.
-    # In plot_clusters_3d.py we saw normalization logic.
-    
     train_dataset = ClassifierDataset(torch.from_numpy(X_train.values).float(), torch.from_numpy(y_train.values).long())
     val_dataset = ClassifierDataset(torch.from_numpy(X_val.values).float(), torch.from_numpy(y_val.values).long())
     test_dataset = ClassifierDataset(torch.from_numpy(X_test.values).float(), torch.from_numpy(y_test.values).long())
@@ -127,9 +123,6 @@ def train_model(X, y, num_classes, epochs=10, batch_size=1048, learning_rate=6e-
     model = MulticlassClassificationWithAttentionHead(num_feature=X.shape[1], num_class=num_classes)
     model.to(device)
 
-    # Note: notebook used 'weight=class_weights' in CrossEntropyLoss ?
-    # Let's check if notebook defines custom weights for Loss.
-    # Notebook: criterion = nn.CrossEntropyLoss(weight=class_weights.to(device))
     criterion = nn.CrossEntropyLoss(weight=class_weights.to(device))
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
