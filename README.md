@@ -13,7 +13,7 @@ Understanding tourist behavior is essential for destination management. This pro
 
 
 <p align="center">
-  <img src="images/architecture.png" width="650"/>
+  <img src="paper/figures/methodology_schema.png" width="650"/>
 </p>
 
 *Attention-based deep neural network architecture for tourist segment classification.*
@@ -56,7 +56,7 @@ Classification performance on RFM tourist segments (weighted F1):
 | Macro F1 | 0.79 |
 
 <p align="center">
-  <img src="images/rfm_clusters.png" width="600"/>
+  <img src="paper/figures/multihead.png" width="600"/>
 </p>
 
 *Distribution of points for each theoretical RFM cluster (front view). RFM clusters group tourists by visit recency, frequency, and estimated monetary value.*
