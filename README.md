@@ -86,11 +86,11 @@ bash scripts/run_experiment.sh
 ## Citation
 
 ```bibtex
-@article{duranlopez2025rfm,
-  title={RFM-Based Tourist Segmentation with Attention-Augmented Deep Learning and Anomaly Detection},
-  author={Dur{\'a}n-L{\'o}pez, Alberto and Bola{\~n}os-Mart{\'i}nez, Daniel and Berm{\'u}dez-Edo, Mar{\'i}a},
-  journal={International Journal of Information Technology and Decision Making},
-  year={2025},
+@article{duran2026tourism,
+  title={Tourism Segmentation Using Attention and Anomaly Detection},
+  author={Duran-Lopez, Alberto and Bolanos-Martinez, Daniel and Bermudez-Edo, Maria},
+  journal={International Journal of Information Technology \& Decision Making},
+  year={2026},
   publisher={World Scientific}
 }
 ```
